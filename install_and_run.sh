@@ -44,4 +44,4 @@ echo "deb [signed-by=/usr/share/keyrings/rm-dev-archive-keyring.gpg] https://pkg
 apt-get update && apt-get install -y isotope isotope-ebpf-shim
 
 # Step 5: Run isotope with the specified parameters
-nohup /usr/bin/isotope -port $PORT -api-key $API_KEY -platform-api-url $API_URL > /var/log/isotope.log 2>&1 &
+nohup /usr/bin/isotope -port $PORT -api-key $API_KEY -platform-api-url $API_URL 
