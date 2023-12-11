@@ -7,6 +7,8 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 DEFAULT_PORT=8080
+DEFAULT_API_KEY="hak_1234_foo"
+DEFAULT_API_URL"https://api.revenium.io"
 
 # Check if a port number is provided as an argument
 if [ "$#" -eq 1 ]; then
@@ -22,6 +24,13 @@ else
     API_KEY=$DEFAULT_API_KEY
 fi
 
+# Check if API URL is provided as the thrid argument
+if [ "$#" -ge 3 ]; then
+    API_URL=$2
+else
+    API_URL=$DEFAULT_API_URL
+fi
+
 # Step 1: Update and install necessary packages
 apt-get update && apt-get install -y curl lsb-release
 
@@ -35,4 +44,4 @@ echo "deb [signed-by=/usr/share/keyrings/rm-dev-archive-keyring.gpg] https://pkg
 apt-get update && apt-get install -y isotope isotope-ebpf-shim
 
 # Step 5: Run isotope with the specified parameters
-nohup /usr/bin/isotope -port 8080 -api-key hak-foo -platform-api-url "https://api.qa.hcapp.io"  > /var/log/isotope.log 2>&1 &
+nohup /usr/bin/isotope -port $PORT -api-key $API_KEY -platform-api-url $API_URL > /var/log/isotope.log 2>&1 &
