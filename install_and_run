@@ -41,7 +41,12 @@ else
     API_URL="${DEFAULT_API_URL}"
 fi
 
-shift 3
+if [ ${#} -ge 3 ]; then
+    shift 3
+else
+    shift $#
+fi
+
 EXTRA_ARGS="$@"
 
 # Step 1: Update and install necessary packages
