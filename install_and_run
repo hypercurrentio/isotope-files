@@ -41,6 +41,9 @@ else
     API_URL="${DEFAULT_API_URL}"
 fi
 
+shift 3
+EXTRA_ARGS="$@"
+
 # Step 1: Update and install necessary packages
 apt-get update && apt-get install -y curl lsb-release
 
@@ -63,5 +66,6 @@ apt-get update && apt-get install -y isotope isotope-ebpf-shim
 nohup isotope \
     -port "${PORT}" \
     -api-key "${API_KEY}" \
-    -platform-api-url "${API_URL}" \
+    -platform-api-url "${API_URL}" \ 
+    ${EXTRA_ARGS} \
     >> /var/log/isotope.log 2>&1 &
