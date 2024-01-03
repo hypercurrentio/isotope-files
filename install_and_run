@@ -72,5 +72,4 @@ nohup isotope \
     -ports "${PORT}" \
     -api-key "${API_KEY}" \
     -platform-api-url "${API_URL}" \ 
-    ${EXTRA_ARGS} \
-    >> /var/log/isotope.log 2>&1 &
+    ${EXTRA_ARGS} >> /var/log/isotope.log 2>&1 &
