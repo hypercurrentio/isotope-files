@@ -1,17 +1,10 @@
 #!/bin/sh
 
+set -eu
+umask 022
+
 PATH=/bin:/usr/bin
 export PATH
-
-# Ensure the script is run as root
-if [ "$(id -u)" != "0" ]; then
-   echo "This script must be run as root" 1>&2
-   exit 1
-fi
-
-DEFAULT_PORT=8080
-DEFAULT_API_KEY=hak_1234_foo
-DEFAULT_API_URL=https://api.revenium.io
 
 PACKAGE_REPO_KEYRING_FILE=rm-dev-archive-keyring.gpg
 PACKAGE_REPO_LIST_FILE=rm-dev.list
@@ -20,43 +13,52 @@ PACKAGE_REPO_URL=https://pkg.dev.hcapp.io/deb
 APT_SOURCES_LIST_DIR=/etc/apt/sources.list.d
 KEYRING_DIR=/usr/share/keyrings
 
-# Check if a port number is provided as an argument
-if [ ${#} -ge 1 ]; then
-    PORT="${1}"
-else
-    PORT="${DEFAULT_PORT}"
-fi
+PROG="${0##*/}"
 
-# Check if an API key is provided as the second argument
-if [ ${#} -ge 2 ]; then
-    API_KEY="${2}"
-else
-    API_KEY="${DEFAULT_API_KEY}"
-fi
+usage()
+{
+    cat <<EOF
+Usage:	${PROG} [-k key] [-p portlist] [-u url] [args ...]
+	${PROG} -h
 
-# Check if API URL is provided as the third argument
-if [ ${#} -ge 3 ]; then
-    API_URL="${3}"
-else
-    API_URL="${DEFAULT_API_URL}"
-fi
+Options:
+-h	Show this usage message
+-k	The Revenium Platform API key
+-p	Comma-separated list of ports to listen for API traffic on
+-u	The Revenium Platform API URL
+EOF
+}
 
-if [ ${#} -ge 3 ]; then
-    shift 3
-else
-    shift $#
-fi
+key=hak_1234_foo
+ports=8080
+url=https://api.revenium.io
 
-EXTRA_ARGS="$@"
+while getopts hk:p:u: opt
+do
+    case "${opt}" in
+    h) usage; exit 0;;
+    k) key="${OPTARG}";;
+    p) ports="${OPTARG}";;
+    u) url="${OPTARG}";;
+    *) usage 1>&2; exit 1;;
+    esac
+done
+shift $((${OPTIND} - 1))
+
+# Ensure the script is run as root
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
 
 # Step 1: Update and install necessary packages
 apt-get update && apt-get install -y curl lsb-release
 
-# Step 2: Download the keyring for your package repository
+# Step 2: Download the keyring for the Revenium package repository
 curl -Lo "${KEYRING_DIR}/${PACKAGE_REPO_KEYRING_FILE}" \
     "${PACKAGE_REPO_URL}/${PACKAGE_REPO_KEYRING_FILE}"
 
-# Step 3: Add your package repository to the sources list
+# Step 3: Add the Revenium package repository to the sources list
 printf "deb [signed-by=%s] %s/%s %s main\n" \
     "${KEYRING_DIR}/${PACKAGE_REPO_KEYRING_FILE}" \
     "${PACKAGE_REPO_URL}" \
@@ -69,7 +71,8 @@ apt-get update && apt-get install -y isotope isotope-ebpf-shim
 
 # Step 5: Run isotope with the specified parameters
 nohup isotope \
-    -ports "${PORT}" \
-    -api-key "${API_KEY}" \
-    -platform-api-url "${API_URL}" \ 
-    ${EXTRA_ARGS} >> /var/log/isotope.log 2>&1 &
+    -ports "${ports}" \
+    -api-key "${key}" \
+    -platform-api-url "${url}" \
+    "${@}" \
+    >> /var/log/isotope.log 2>&1 &
