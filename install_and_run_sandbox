@@ -1,0 +1,77 @@
+#!/bin/sh
+
+set -eu
+umask 022
+
+PATH=/bin:/usr/bin
+export PATH
+
+PACKAGE_REPO_KEYRING_FILE=rm-dev-archive-keyring.gpg
+PACKAGE_REPO_LIST_FILE=rm-dev.list
+PACKAGE_REPO_URL=https://pkg.dev.hcapp.io/deb
+
+APT_SOURCES_LIST_DIR=/etc/apt/sources.list.d
+KEYRING_DIR=/usr/share/keyrings
+
+PROG="${0##*/}"
+
+usage()
+{
+    cat <<EOF
+Usage:	${PROG} [-k key] [-p portlist] [-u url] [args ...]
+	${PROG} -h
+
+Options:
+-h	Show this usage message
+-k	The Revenium Platform API key
+-p	Comma-separated list of ports to listen for API traffic on
+-u	The Revenium Platform API URL
+EOF
+}
+
+key=hak_1234_foo
+ports=8080
+url=https://api.revenium.io
+
+while getopts hk:p:u: opt
+do
+    case "${opt}" in
+    h) usage; exit 0;;
+    k) key="${OPTARG}";;
+    p) ports="${OPTARG}";;
+    u) url="${OPTARG}";;
+    *) usage 1>&2; exit 1;;
+    esac
+done
+shift $((${OPTIND} - 1))
+
+# Ensure the script is run as root
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+# Step 1: Update and install necessary packages
+apt-get update && apt-get install -y curl lsb-release
+
+# Step 2: Download the keyring for the Revenium package repository
+curl -Lo "${KEYRING_DIR}/${PACKAGE_REPO_KEYRING_FILE}" \
+    "${PACKAGE_REPO_URL}/${PACKAGE_REPO_KEYRING_FILE}"
+
+# Step 3: Add the Revenium package repository to the sources list
+printf "deb [signed-by=%s] %s/%s %s main\n" \
+    "${KEYRING_DIR}/${PACKAGE_REPO_KEYRING_FILE}" \
+    "${PACKAGE_REPO_URL}" \
+    "$(lsb_release -is | tr A-Z a-z)" \
+    "$(lsb_release -cs)" \
+    > "${APT_SOURCES_LIST_DIR}/${PACKAGE_REPO_LIST_FILE}"
+
+# Step 4: Update and install isotope and its eBPF shim
+apt-get update && apt-get install -y isotope isotope-ebpf-shim
+
+# Step 5: Run isotope with the specified parameters
+nohup isotope \
+    -ports "${ports}" \
+    -api-key "${key}" \
+    -platform-api-url "${url}" \
+    "${@}" &
