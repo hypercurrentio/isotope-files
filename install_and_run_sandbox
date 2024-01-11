@@ -74,4 +74,5 @@ nohup isotope \
     -ports "${ports}" \
     -api-key "${key}" \
     -platform-api-url "${url}" \
+    -statistics-interval 5 \
     "${@}" &
